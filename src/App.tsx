@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { GameState, GameStats, DifficultyMode } from './types';
+import React, { useState, useEffect, useMemo } from 'react';
+import { GameState, GameStats, DifficultyMode, LayoutSelection } from './types';
 import { getLondonDateString, generateDailyPuzzle } from './utils/puzzles';
 import { Header } from './components/Header';
 import { TitleMenu } from './components/TitleMenu';
@@ -28,6 +28,7 @@ export default function App() {
   const [todayDateStr] = useState<string>(() => getLondonDateString());
   const [selectedDateStr, setSelectedDateStr] = useState<string>(() => getLondonDateString());
   const [difficulty, setDifficulty] = useState<DifficultyMode>('normal');
+  const [layoutSelection, setLayoutSelection] = useState<LayoutSelection>('daily');
 
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [isMuted, setIsMuted] = useState<boolean>(false);
@@ -49,6 +50,7 @@ export default function App() {
     score: number;
     words: string[];
     difficulty: DifficultyMode;
+    layoutName: string;
   } | null>(null);
 
   // Save stats
@@ -69,10 +71,20 @@ export default function App() {
     }
   }, [isDarkMode]);
 
-  const currentPuzzle = generateDailyPuzzle(selectedDateStr, difficulty);
+  const currentPuzzle = useMemo(
+    () => generateDailyPuzzle(selectedDateStr, difficulty, layoutSelection),
+    [selectedDateStr, difficulty, layoutSelection]
+  );
 
   const handleVictory = (timeSeconds: number, hintsUsed: number, score: number, words: string[]) => {
-    setVictoryData({ timeSeconds, hintsUsed, score, words, difficulty });
+    setVictoryData({
+      timeSeconds,
+      hintsUsed,
+      score,
+      words,
+      difficulty,
+      layoutName: currentPuzzle.layoutName,
+    });
 
     setStats(prev => {
       const isHard = difficulty === 'hard';
@@ -155,6 +167,8 @@ export default function App() {
             onSelectDate={(date) => setSelectedDateStr(date)}
             difficulty={difficulty}
             onSelectDifficulty={(mode) => setDifficulty(mode)}
+            layoutSelection={layoutSelection}
+            onSelectLayout={(layout) => setLayoutSelection(layout)}
           />
         )}
 
@@ -163,6 +177,8 @@ export default function App() {
             puzzle={currentPuzzle}
             difficulty={difficulty}
             onChangeDifficulty={(mode) => setDifficulty(mode)}
+            layoutSelection={layoutSelection}
+            onChangeLayout={(layout) => setLayoutSelection(layout)}
             onVictory={handleVictory}
             setCurrentView={setCurrentView}
             onOpenHowToPlay={() => setShowHowToPlay(true)}
@@ -210,6 +226,7 @@ export default function App() {
         <VictoryModal
           dateStr={selectedDateStr}
           difficulty={victoryData.difficulty}
+          layoutName={victoryData.layoutName}
           timeSeconds={victoryData.timeSeconds}
           hintsUsed={victoryData.hintsUsed}
           score={victoryData.score}

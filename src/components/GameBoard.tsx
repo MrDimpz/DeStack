@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Lightbulb, RotateCcw, ArrowLeft, Flame, Layers } from 'lucide-react';
-import { WordPuzzle, TileData, GameState, DifficultyMode } from '../types';
+import { Lightbulb, RotateCcw, ArrowLeft, Flame, Layers, LayoutGrid } from 'lucide-react';
+import { WordPuzzle, TileData, GameState, DifficultyMode, LayoutSelection } from '../types';
 import { soundManager } from '../utils/audio';
+import { TILE_LAYOUTS } from '../utils/puzzles';
 
 interface GameBoardProps {
   puzzle: WordPuzzle;
   difficulty: DifficultyMode;
   onChangeDifficulty: (mode: DifficultyMode) => void;
+  layoutSelection: LayoutSelection;
+  onChangeLayout: (layout: LayoutSelection) => void;
   onVictory: (timeSeconds: number, hintsUsed: number, score: number, words: string[]) => void;
   setCurrentView: (view: GameState) => void;
   onOpenHowToPlay: () => void;
@@ -16,6 +19,8 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   puzzle,
   difficulty,
   onChangeDifficulty,
+  layoutSelection,
+  onChangeLayout,
   onVictory,
   setCurrentView,
   onOpenHowToPlay,
@@ -39,7 +44,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   const [isDraggingHint, setIsDraggingHint] = useState(false);
   const swipeTrackRef = useRef<HTMLDivElement | null>(null);
 
-  // Reset board if puzzle date or difficulty changes
+  // Reset board if puzzle date, difficulty, or layout changes
   useEffect(() => {
     setTiles(JSON.parse(JSON.stringify(puzzle.tiles)));
     setRack([null, null, null, null, null]);
@@ -300,7 +305,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
       {/* Main Stackdown Card Shell */}
       <div className="relative z-10 w-full max-w-[460px] flex flex-col items-center">
         {/* Top Utility Strip (Exit / Difficulty Switch / Timer / Reset) */}
-        <div className="w-full flex items-center justify-between px-1 mb-2.5 text-purple-100/85 text-xs font-semibold">
+        <div className="w-full flex items-center justify-between px-1 mb-2 text-purple-100/85 text-xs font-semibold">
           <button
             onClick={() => setCurrentView('TITLE')}
             className="inline-flex items-center gap-1 hover:text-amber-300 transition-colors py-1"
@@ -349,6 +354,39 @@ export const GameBoard: React.FC<GameBoardProps> = ({
           </div>
         </div>
 
+        {/* Layout Selector Strip (Daily + 5 Distinct Tile Layouts) */}
+        <div className="w-full flex items-center gap-1 p-1 rounded-xl bg-[#360b42]/90 dark:bg-[#16041c]/90 border border-purple-400/20 mb-2.5 overflow-x-auto no-scrollbar">
+          <span className="px-1.5 text-purple-200/60 shrink-0" title="Tile Layout">
+            <LayoutGrid className="w-3.5 h-3.5" />
+          </span>
+          <button
+            type="button"
+            onClick={() => onChangeLayout('daily')}
+            className={`px-2 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap shrink-0 transition-all cursor-pointer ${
+              layoutSelection === 'daily'
+                ? 'bg-amber-400 text-[#2d0938] shadow-sm'
+                : 'text-purple-200/75 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            Daily
+          </button>
+          {TILE_LAYOUTS.map(layout => (
+            <button
+              key={layout.id}
+              type="button"
+              onClick={() => onChangeLayout(layout.id)}
+              title={layout.description}
+              className={`px-2 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap shrink-0 transition-all cursor-pointer ${
+                layoutSelection === layout.id
+                  ? 'bg-amber-400 text-[#2d0938] shadow-sm'
+                  : 'text-purple-200/75 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              {layout.shortName}
+            </button>
+          ))}
+        </div>
+
         {/* Stackdown Header Pill ("HOW TO PLAY" + Logo Emblem + "X WORDS REMAINING") */}
         <div className="flex flex-col items-center gap-1 mb-2.5">
           <div className="flex items-center gap-2.5">
@@ -364,19 +402,23 @@ export const GameBoard: React.FC<GameBoardProps> = ({
               HOW TO PLAY
             </button>
           </div>
-          <div className="text-purple-100/90 text-xs sm:text-sm tracking-widest uppercase font-medium mt-1 flex items-center gap-2">
+          <div className="text-purple-100/90 text-xs tracking-widest uppercase font-medium mt-1 flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5">
             <span>
               <strong className="font-black text-amber-300 tabular-nums">{wordsRemaining}</strong>{' '}
               {wordsRemaining === 1 ? 'WORD REMAINING' : 'WORDS REMAINING'}
             </span>
             <span aria-hidden="true" className="text-purple-300/40">·</span>
-            <span className="text-xs text-amber-300/90 font-bold">
-              {puzzle.totalLayers} LAYERS ({puzzle.tiles.length} TILES)
+            <span className="text-amber-300/90 font-bold">
+              {puzzle.layoutName}
+            </span>
+            <span aria-hidden="true" className="text-purple-300/40">·</span>
+            <span className="text-purple-200/80 font-bold">
+              {puzzle.totalLayers} Layers
             </span>
           </div>
         </div>
 
-        {/* Recessed Square Stack Board — 4-Layer (30 Tiles) or 6-Layer Hard Mode (50 Tiles) */}
+        {/* Recessed Square Stack Board */}
         <div className="relative w-full aspect-square bg-[#360b42] dark:bg-[#16041c] border border-purple-400/15 rounded-2xl shadow-[inset_0_5px_14px_rgba(0,0,0,0.45)] p-2.5 sm:p-4 overflow-hidden">
           {tiles.map(tile => {
             if (tile.isCleared || tile.inRackIndex !== null) return null;
