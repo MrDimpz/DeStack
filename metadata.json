@@ -1,0 +1,6 @@
+{
+  "name": "DeStack",
+  "description": "A daily word stacking and unstacking puzzle game inspired by Stackdown with physics, 6 months of daily puzzles, leaderboards, and haptic feedback.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
